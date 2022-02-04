@@ -1,10 +1,12 @@
 from curses.textpad import rectangle
 from turtle import left
+from xxlimited import new
 import matplotlib.pyplot as plt
 import random
 import numpy as np
-random.seed(3)
+#random.seed(1)
 import time
+import copy
 
 #For each camera i, define matrix Ci = [pi1, pi2, .... pin] where pij is the jth ray pixel coordinate of camera i
 #Define cix, ciy as the origin of camera camera i
@@ -32,7 +34,6 @@ class Printed_Matter:
 
     
     def plot_matter(self):  
-        axs[0].cla()
         colors = [color_map[col] for col in self.COL]
         axs[0].bar(self.rectangle_centers, self.H, width=self.rect_width, color = colors)
         
@@ -76,10 +77,22 @@ class Printed_Matter:
         else:
             return 0
 
-    def pertubate_heights(self, step_amount = 0.1):
+    def pertubate_heights(self, step_amount = 0.1, probability_of_change = 0.5):
+        p1 = probability_of_change/2
+        p2 = 1-probability_of_change
         for i in range(len(self.H)):
-            self.H[i] = self.H[i] + random.choice([-step_amount, 0, step_amount])
+            change = random.choices([-step_amount, 0, step_amount], weights=(p1, p2, p1), k=1)[0]
+            self.H[i] = self.H[i] + change
+            #self.H[i] = self.H[i] + random.choice([-step_amount, 0, step_amount])
         
+    def pertubate_colors(self, probability_of_change = 0.5):
+
+        for i in range(len(self.COL)):
+            change = random.choices([0, 1], weights=(1-probability_of_change, probability_of_change), k=1)[0]
+            if change:
+                self.COL[i] = 1-self.COL[i]
+            #self.H[i] = self.H[i] + random.choice([-step_amount, 0, step_amount])
+            
     def take_photo(self, camera):
         R = ['black']*camera.num_pixels
 
@@ -128,7 +141,6 @@ class Camera:
         
     def plot_rays(self):
         
-        
         for i, pixel in enumerate(self.pixel_centers):
             pixel_x = pixel[0]
             xs = [pixel[0], self.ray_ends[i][0]]
@@ -174,7 +186,6 @@ def set_plot_bounds():
 
 def update(cameras, p):
 
-    p.plot_matter()
 
     for camera in cameras:
         camera.plot_rays()
@@ -194,27 +205,89 @@ right_edge2 = np.array([1,4])
 
 
 
-num_pixels = 20
+num_pixels = 100
 camera = Camera(left_edge, right_edge, num_pixels, camera_num=1)
 
 p = Printed_Matter()
-camera.set_random_desired()
+#camera.set_random_desired()
+desired_manual = [0]*30 + [1] *20 + [0]* 40 + [1]*10
+camera.set_desired(np.array(desired_manual))
 
 set_plot_bounds()
 cameras = [camera]
 update(cameras, p)
+p.plot_matter()
 
-for i in range(10):
-    p.pertubate_heights()
+
+old_heights = copy.deepcopy(p.H)
+old_cols = copy.deepcopy(p.COL)
+
+old_loss = camera.get_cam_loss()
+step_size_e = 0.1
+step_size_r = 0.8
+
+
+prob_e = 0.5
+prob_r = 0.8
+
+color_e = 0.4
+color_r = 0.8
+
+update_ratio = 3 #num normal updates per color update
+
+for i in range(100):
+    if i%update_ratio == 0:
+        p.pertubate_colors(probability_of_change=prob_e)
+
+    else:
+        p.pertubate_heights(step_amount=step_size_e, probability_of_change=prob_e)
     cameras = [camera]
     update(cameras, p)
+    
+    
+    new_loss = camera.get_cam_loss()
+    
+    print()
+    print("old loss " + str(old_loss) + "new_loss" + str(new_loss))
+
+
+
+    if new_loss <= old_loss:
+        
+        old_loss = new_loss
+        
+        if i%update_ratio == 0:
+            old_cols = copy.deepcopy(p.COL)
+            color_e = color_e*color_r
+        else:
+            old_heights = copy.deepcopy(p.H)
+        
+            prob_e = prob_e * prob_r
+            step_size_e = step_size_e * step_size_r
+        
+    
+    else:
+        if i%update_ratio == 0:
+            p.COL = copy.deepcopy(old_cols)
+        else:
+            p.H = copy.deepcopy(old_heights)
+        
+
+        p.plot_matter()
+        update(cameras, p)
+
+        
+    
+    #print(p.H)
+
+    p.plot_matter()
     set_plot_bounds()
     plt.draw()
-    plt.pause(1)
-    
-    loss = camera.get_cam_loss()
-    print("MSE LOSS")
-    print(loss)
+    plt.pause(0.00001)
+    axs[0].cla()
+
+
+
 
 
 
