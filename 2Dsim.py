@@ -2,7 +2,7 @@ from curses.textpad import rectangle
 import matplotlib.pyplot as plt
 import random
 import numpy as np
-random.seed(1)
+random.seed(3)
 
 #For each camera i, define matrix Ci = [pi1, pi2, .... pin] where pij is the jth ray pixel coordinate of camera i
 #Define cix, ciy as the origin of camera camera i
@@ -12,7 +12,7 @@ random.seed(1)
 edges = np.array([[1, 0], [11, 0]])
 
 
-cix, ciy = np.array([0, 4])
+cix, ciy = np.array([1, 3])
 
 ray_x_vals = np.array([ray[0] for ray in edges])
 ray_y_vals = np.array([ray[1] for ray in edges])
@@ -31,8 +31,8 @@ right_edge_point = right_edge_unit_vector + [cix, ciy]
 x_coords = [left_edge_point[0], right_edge_point[0]]
 y_coords = [left_edge_point[1], right_edge_point[1]]
 
-xs = np.linspace(x_coords[0], x_coords[1], 10)
-ys = np.linspace(y_coords[0], y_coords[1], 10)
+xs = np.linspace(x_coords[0], x_coords[1], 100)
+ys = np.linspace(y_coords[0], y_coords[1], 100)
 
 C1 = np.array(list(zip(xs,ys)))
 
@@ -114,7 +114,7 @@ def intersect(ray, rectangle, cam_center):
     else:
         return 0
 
-R1 = ['black']*10
+R1 = ['black']*100
 
 for i in range(len(C1)):
     ray = C1[i]
@@ -137,11 +137,15 @@ for i in range(len(C1)):
 
 plt.show()
 
+print("shown plot 1")
 plt.clf()
+
+print("cleared")
 plt.gca().set_aspect('equal', adjustable='box')
 
 
-plt.bar([i for i in range(len(C1))], [1 for i in range(len(C1))], width = 1, color = R1)
+plt.bar([i for i in range(len(C1))], [10 for i in range(len(C1))], width = 1, color = R1)
 plt.show()
 
+print("shown")
 
